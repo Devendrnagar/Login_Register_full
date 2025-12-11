@@ -1,8 +1,9 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
+// 
+// const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://login-register-full-1.onrender.com/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://login-register-full-1.onrender.com/api';
-
+const API_BASE_URL = 'https://login-register-full-1.onrender.com/api';
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
