@@ -44,6 +44,15 @@ mongoose.connect(process.env.MONGODB_URI)
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    success: true,
+    status: 'API is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -60,11 +69,6 @@ app.use('*', (req, res) => {
     success: false,
     message: 'API route not found'
   });
-});
-
-//api health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'API is running' });
 });
 
 // Start server
