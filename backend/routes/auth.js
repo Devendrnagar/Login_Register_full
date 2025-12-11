@@ -11,6 +11,15 @@ const {
 
 const router = express.Router();
 
+// Simple test route to verify auth routes are working
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Auth routes are working!',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Rate limiting for authentication routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
