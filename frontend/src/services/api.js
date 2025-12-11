@@ -42,42 +42,42 @@ api.interceptors.response.use(
 // Auth API calls
 export const authAPI = {
   // Register
-  register: (userData) => api.post('/auth/register', userData),
+  register: (userData) => api.post('https://login-register-full-1.onrender.com/auth/register', userData),
   
   // Login
-  login: (credentials) => api.post('/auth/login', credentials),
-  
+  login: (credentials) => api.post('https://login-register-full-1.onrender.com/auth/login', credentials),
+
   // Verify email
-  verifyEmail: (token) => api.get(`/auth/verify-email/${token}`),
+  verifyEmail: (token) => api.get(`https://login-register-full-1.onrender.com/auth/verify-email/${token}`),
   
 
   
   // Forgot password
-  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
-  
+  forgotPassword: (email) => api.post('https://login-register-full-1.onrender.com/auth/forgot-password', { email }),
+
   // Reset password
-  resetPassword: (token, password) => api.post(`/auth/reset-password/${token}`, { password }),
-  
+  resetPassword: (token, password) => api.post(`https://login-register-full-1.onrender.com/auth/reset-password/${token}`, { password }),
+
   // Resend verification email
-  resendVerification: (email) => api.post('/auth/resend-verification', { email }),
+  resendVerification: (email) => api.post('https://login-register-full-1.onrender.com/auth/resend-verification', { email }),
 };
 
 // User API calls
 export const userAPI = {
   // Get profile
-  getProfile: () => api.get('/user/profile'),
-  
+  getProfile: () => api.get('https://login-register-full-1.onrender.com/user/profile'),
+
   // Update profile
-  updateProfile: (userData) => api.put('/user/profile', userData),
-  
+  updateProfile: (userData) => api.put('https://login-register-full-1.onrender.com/user/profile', userData),
+
   // Change password
-  changePassword: (passwordData) => api.put('/user/change-password', passwordData),
-  
+  changePassword: (passwordData) => api.put('https://login-register-full-1.onrender.com/user/change-password', passwordData),
+
   // Get dashboard stats
-  getDashboardStats: () => api.get('/user/dashboard-stats'),
-  
+  getDashboardStats: () => api.get('https://login-register-full-1.onrender.com/user/dashboard-stats'),
+
   // Delete account
-  deleteAccount: (password) => api.delete('/user/account', { data: { password } }),
+  deleteAccount: (password) => api.delete('https://login-register-full-1.onrender.com/user/account', { data: { password } }),
 };
 
 export default api;
