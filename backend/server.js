@@ -27,7 +27,7 @@ app.use('/api/', limiter);
 
 // CORS middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: 'https://login-register-full.vercel.app' || process.env.CLIENT_URL,
   credentials: true
 }));
 
