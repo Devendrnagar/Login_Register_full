@@ -10,6 +10,10 @@ const api = axios.create({
   timeout: 15000, // Increased timeout to 15 seconds
 });
 
+//send sms function sendSMS(to, message) {
+//  return api.post('/sms/send', { to, message });
+//}
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
