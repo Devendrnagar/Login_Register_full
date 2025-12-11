@@ -62,6 +62,12 @@ app.use('*', (req, res) => {
   });
 });
 
+//api health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'API is running' });
+});
+
+// Start server
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
