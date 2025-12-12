@@ -20,6 +20,8 @@ router.get('/test', (req, res) => {
   });
 });
 
+
+
 // Rate limiting for authentication routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -58,8 +60,27 @@ const generateToken = (userId) => {
 // @access  Public
 router.post('/register', registerValidation, async (req, res) => {
   try {
+    console.log('Registration attempt for:', req.body.email);
+    
+    // Check database connection
+    const mongoose = require('mongoose');
+    console.log('MongoDB connection state:', mongoose.connection.readyState); // 0 = disconnected, 1 = connected
+    
+    // Test database query
+    try {
+      const userCount = await User.countDocuments();
+      console.log('Total users in database:', userCount);
+    } catch (dbError) {
+      console.error('Database query test failed:', dbError);
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection error'
+      });
+    }
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -68,39 +89,66 @@ router.post('/register', registerValidation, async (req, res) => {
     }
 
     const { firstName, lastName, email, password } = req.body;
+    console.log('Processing registration for:', { firstName, lastName, email });
+
+    // Normalize email to lowercase (consistent with schema)
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log('Original email:', email, 'Normalized email:', normalizedEmail);
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    console.log('Checking if user exists for email:', normalizedEmail);
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    console.log('Existing user found:', existingUser ? 'YES' : 'NO');
+    if (existingUser) {
+      console.log('Existing user details:', {
+        id: existingUser._id,
+        email: existingUser.email,
+        firstName: existingUser.firstName,
+        createdAt: existingUser.createdAt
+      });
+    }
 
     if (existingUser) {
+      console.log('User already exists, rejecting registration');
       return res.status(400).json({
         success: false,
         message: 'User with this email address already exists'
       });
     }
 
+    console.log('User does not exist, proceeding with registration');
+
     // Create new user
+    console.log('Creating new user object...');
     const user = new User({
       firstName,
       lastName,
-      email,
+      email: normalizedEmail,
       password
     });
+    console.log('User object created:', { id: user._id, email: user.email });
 
     // Generate email verification token
+    console.log('Generating email verification token...');
     const emailToken = generateVerificationToken();
     user.emailVerificationToken = emailToken;
     user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    console.log('Email token generated and assigned');
 
+    console.log('Saving user to database...');
     await user.save();
+    console.log('User saved successfully to database');
 
     // Send verification email
+    console.log('Sending verification email...');
     await sendEmail(
-      email,
+      normalizedEmail,
       'Verify Your Email Address',
       emailTemplates.emailVerification(user.fullName, emailToken)
     );
+    console.log('Verification email sent');
 
+    console.log('Registration completed successfully for:', normalizedEmail);
     res.status(201).json({
       success: true,
       message: 'Registration successful! Please check your email to verify your account.',
@@ -115,6 +163,22 @@ router.post('/register', registerValidation, async (req, res) => {
 
   } catch (error) {
     console.error('Registration error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    
+    // Check if it's a duplicate key error (MongoDB error for unique constraint)
+    if (error.code === 11000) {
+      console.log('Duplicate key error detected');
+      return res.status(400).json({
+        success: false,
+        message: 'User with this email address already exists'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Server error during registration'
