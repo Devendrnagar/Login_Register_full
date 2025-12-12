@@ -1,15 +1,26 @@
 const nodemailer = require('nodemailer');
 
-// Email service
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+// Email service configuration with fallback
+const getTransporter = () => {
+  // Primary configuration
+  const config = {
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: process.env.EMAIL_PORT || 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    },
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000, // 10 seconds
+    socketTimeout: 10000, // 10 seconds
+    pool: true, // Use connection pooling
+  };
+
+  return nodemailer.createTransporter(config);
+};
+
+const transporter = getTransporter();
 
 
 
@@ -21,16 +32,25 @@ const sendEmail = async (to, subject, html) => {
     }
 
     const mailOptions = {
-      from: `"Devendra Dhakad" <david@gmail.com>`,
+      from: `"Devendra Dhakad" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html
     };
 
-    await transporter.sendMail(mailOptions);
-    return { success: true };
+    console.log(`Attempting to send email to: ${to}`);
+    const result = await transporter.sendMail(mailOptions);
+    console.log(`Email sent successfully to: ${to}, MessageId: ${result.messageId}`);
+    return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error('Email sending error:', error);
+    
+    // Don't fail registration if email fails in production
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('Email failed in production, but continuing with registration');
+      return { success: false, error: error.message, continuable: true };
+    }
+    
     return { success: false, error: error.message };
   }
 };

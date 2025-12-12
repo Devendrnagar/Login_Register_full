@@ -8,20 +8,42 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config();
 
+// Validate required environment variables
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars);
+  process.exit(1);
+}
+
+// Optional environment variables with warnings
+const optionalEnvVars = ['EMAIL_HOST', 'EMAIL_USER', 'EMAIL_PASS'];
+const missingOptionalVars = optionalEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingOptionalVars.length > 0) {
+  console.warn('Missing optional environment variables (email features may not work):', missingOptionalVars);
+}
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 
 const app = express();
 
+// Trust proxy for deployments behind reverse proxy (like Render, Heroku, etc.)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting with proper proxy support
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 app.use('/api/', limiter);
 
@@ -29,7 +51,8 @@ app.use('/api/', limiter);
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
-  'https://login-register-full.vercel.app'
+  'https://login-register-full.vercel.app',
+  'https://login-register-full-1.onrender.com'
 ];
 
 app.use(cors({
@@ -60,12 +83,31 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    success: true,
-    status: 'API is running',
-    timestamp: new Date().toISOString()
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Check database connection
+    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    
+    // Check email configuration
+    const emailConfigured = !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+    
+    res.json({ 
+      success: true,
+      status: 'API is running',
+      timestamp: new Date().toISOString(),
+      database: dbStatus,
+      emailConfigured,
+      environment: process.env.NODE_ENV || 'development',
+      trustProxy: app.get('trust proxy')
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      status: 'Health check failed',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Error handling middleware

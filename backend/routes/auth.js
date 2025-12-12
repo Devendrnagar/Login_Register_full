@@ -29,7 +29,9 @@ const authLimiter = rateLimit({
   message: {
     success: false,
     message: 'Too many authentication attempts, please try again later.'
-  }
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
 
@@ -141,24 +143,37 @@ router.post('/register', registerValidation, async (req, res) => {
 
     // Send verification email
     console.log('Sending verification email...');
-    await sendEmail(
+    const emailResult = await sendEmail(
       normalizedEmail,
       'Verify Your Email Address',
       emailTemplates.emailVerification(user.fullName, emailToken)
     );
-    console.log('Verification email sent');
+    
+    let responseMessage = 'Registration successful!';
+    if (emailResult.success) {
+      console.log('Verification email sent successfully');
+      responseMessage += ' Please check your email to verify your account.';
+    } else {
+      console.warn('Verification email failed:', emailResult.error);
+      if (emailResult.continuable) {
+        responseMessage += ' Email verification will be sent shortly. You can also request a new verification email later.';
+      } else {
+        responseMessage += ' There was an issue sending the verification email. Please contact support.';
+      }
+    }
 
     console.log('Registration completed successfully for:', normalizedEmail);
     res.status(201).json({
       success: true,
-      message: 'Registration successful! Please check your email to verify your account.',
+      message: responseMessage,
       user: {
         id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
         isVerified: user.isVerified
-      }
+      },
+      emailSent: emailResult.success
     });
 
   } catch (error) {
